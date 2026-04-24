@@ -15,7 +15,8 @@ This SDK follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   HTTP-date formats, matching the Node/Python SDKs).
 - Resources: `Projects` (`Create`, `List`, `Get`, `Status`, `Refine`,
   `WaitForLive`), `Subdomains` (`Check`, `Suggest`), `Secrets` (`List`,
-  `Set`, `Remove`), `User` (`Me`).
+  `Set`, `Remove`), `Library` (`List`, `Clone`), `Usage` (`Summary`),
+  `ApiKeys` (`List`, `Create`, `Remove`), `User` (`Me`).
 - `WaitForLive` polls every 2s by default, honours both `Options.MaxWait`
   and the caller's `context.Context` deadline, and returns a typed
   `BUILD_FAILED` / `BUILD_CANCELLED` `*Error` for non-live terminal
@@ -23,14 +24,16 @@ This SDK follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `Projects.Refine` discriminates the three backend response shapes
   (queued / saved-only / processing) into separate nullable fields on
   `RefineResult` so callers can switch on presence.
+- `Library.List` tolerates both response shapes the backend can emit
+  (bare array or `{items: [...]}` envelope), matching the Node SDK.
+- `ApiKeys.Remove` accepts either an id or a human-readable name and
+  resolves to the id via a preflight List — same ergonomic shortcut as
+  the Node SDK's `apiKeys.remove`.
 - `testing`-friendly transport: `httptest.NewServer` + `WithBaseURL` is
-  the canonical test setup. 22 unit tests cover transport, options,
+  the canonical test setup. 38 unit tests cover transport, options,
   every resource, and the polling loop.
 
 ### Deferred to a future release
-- Uploads (S3 presign + direct PUT).
-- Library (browse + clone public projects).
-- Usage summary / per-project usage.
-- API key management.
+- Uploads (S3 presign + direct PUT — needs careful binary-body handling).
 - Streaming / async iterator equivalent of the Node SDK's
   `projects.stream()`.

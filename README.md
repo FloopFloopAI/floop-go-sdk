@@ -99,9 +99,12 @@ Known `.Code` values mirror the CLI and Node/Python SDKs: `UNAUTHORIZED`, `FORBI
 | `client.Projects`   | `Create`, `List`, `Get`, `Status`, `Refine`, `WaitForLive` |
 | `client.Subdomains` | `Check`, `Suggest` |
 | `client.Secrets`    | `List`, `Set`, `Remove` |
+| `client.Library`    | `List`, `Clone` |
+| `client.Usage`      | `Summary` |
+| `client.ApiKeys`    | `List`, `Create`, `Remove` |
 | `client.User`       | `Me` |
 
-Uploads, library, usage, and API-key management are deferred to a follow-up release — use the [floop CLI](https://github.com/FloopFloopAI/floop-cli) or the Node/Python SDKs for those today.
+Uploads (S3 presign + direct PUT) is the only resource still missing versus the Node/Python SDKs — use the [floop CLI](https://github.com/FloopFloopAI/floop-cli) for that today.
 
 ## Configuration
 

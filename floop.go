@@ -51,6 +51,9 @@ type Client struct {
 	Projects   *Projects
 	Subdomains *Subdomains
 	Secrets    *Secrets
+	Library    *Library
+	Usage      *Usage
+	ApiKeys    *ApiKeys
 	User       *UserAPI
 }
 
@@ -116,6 +119,9 @@ func NewClient(apiKey string, opts ...ClientOption) (*Client, error) {
 	c.Projects = &Projects{client: c}
 	c.Subdomains = &Subdomains{client: c}
 	c.Secrets = &Secrets{client: c}
+	c.Library = &Library{client: c}
+	c.Usage = &Usage{client: c}
+	c.ApiKeys = &ApiKeys{client: c}
 	c.User = &UserAPI{client: c}
 
 	return c, nil
