@@ -121,7 +121,7 @@ Every method takes a `context.Context` — cancel it to abort an in-flight reque
 
 ## Versioning
 
-Follows [Semantic Versioning](https://semver.org/). Breaking changes in `0.x` are called out in [CHANGELOG.md](./CHANGELOG.md) and a new tag is cut with `sdk-v<version>`.
+Follows [Semantic Versioning](https://semver.org/). Breaking changes in `0.x` are called out in [CHANGELOG.md](./CHANGELOG.md) and a new tag is cut with `v<version>` (the plain-`v` prefix is required by Go modules — `go get github.com/FloopFloopAI/floop-go-sdk@v0.1.0-alpha.1` would fail with any other prefix).
 
 ## License
 
