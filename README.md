@@ -56,20 +56,39 @@ func main() {
 }
 ```
 
-## Polling progress manually
+## Streaming progress
 
 ```go
-for {
-    ev, err := client.Projects.Status(ctx, projectID)
-    if err != nil {
-        log.Fatal(err)
-    }
+err := client.Projects.Stream(ctx, projectID, nil, func(ev floop.StatusEvent) error {
     fmt.Printf("%s (%d/%d) — %s\n", ev.Status, ev.Step, ev.TotalSteps, ev.Message)
-    if ev.Status == "live" || ev.Status == "failed" || ev.Status == "cancelled" {
-        break
-    }
-    time.Sleep(2 * time.Second)
+    return nil // return a non-nil error to stop polling early
+})
+var fe *floop.Error
+switch {
+case err == nil:
+    fmt.Println("live!")
+case errors.As(err, &fe) && fe.Code == "BUILD_FAILED":
+    log.Fatalf("build failed: %s", fe.Message)
+case errors.As(err, &fe) && fe.Code == "TIMEOUT":
+    log.Fatalf("didn't finish within MaxWait")
+default:
+    log.Fatal(err)
 }
+```
+
+`Stream` de-duplicates identical consecutive snapshots (same status / step / progress / queue position) so you don't see dozens of identical "queued" events while a build waits — matches the Node and Python SDKs.
+
+If you just want to block until live, `WaitForLive` wraps `Stream` and hydrates the final `Project`:
+
+```go
+live, err := client.Projects.WaitForLive(ctx, projectID, nil)
+```
+
+## Polling status manually
+
+```go
+ev, err := client.Projects.Status(ctx, projectID)
+fmt.Printf("%s (%d/%d) — %s\n", ev.Status, ev.Step, ev.TotalSteps, ev.Message)
 ```
 
 ## Error handling
@@ -96,7 +115,7 @@ Known `.Code` values mirror the CLI and Node/Python SDKs: `UNAUTHORIZED`, `FORBI
 
 | Namespace           | Methods |
 |---|---|
-| `client.Projects`   | `Create`, `List`, `Get`, `Status`, `Refine`, `WaitForLive` |
+| `client.Projects`   | `Create`, `List`, `Get`, `Status`, `Refine`, `Stream`, `WaitForLive` |
 | `client.Subdomains` | `Check`, `Suggest` |
 | `client.Secrets`    | `List`, `Set`, `Remove` |
 | `client.Library`    | `List`, `Clone` |
@@ -105,7 +124,7 @@ Known `.Code` values mirror the CLI and Node/Python SDKs: `UNAUTHORIZED`, `FORBI
 | `client.Uploads`    | `Create` (returns an `UploadedAttachment` you pass into `Projects.Refine`) |
 | `client.User`       | `Me` |
 
-Surface parity with the Node and Python SDKs is complete. The only gap left is the streaming iterator equivalent of `projects.stream()` — use the `Projects.Status` polling loop shown above, or `Projects.WaitForLive` for the blocking variant, until that lands.
+Surface parity with the Node and Python SDKs is **complete** as of 0.1.0-alpha.3 — `Projects.Stream` closes the last gap.
 
 ## Uploading an attachment
 

@@ -4,6 +4,31 @@ All notable changes to `github.com/FloopFloopAI/floop-go-sdk` are documented
 in this file. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This SDK follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.3] — 2026-04-24
+
+### Added
+- `client.Projects.Stream(ctx, ref, opts, handler)` — polls the project
+  status endpoint and calls `handler` on each de-duplicated event
+  (status / step / progress / queuePosition tuple) until a terminal
+  state (live / failed / cancelled), the context deadline fires,
+  `opts.MaxWait` elapses, or the handler returns an error. Closes the
+  last parity gap vs the Node / Python SDKs.
+- `StreamOptions` (`Interval`, `MaxWait`) and `StreamHandler` types.
+  `WaitForLiveOptions` is now a type alias for `StreamOptions` —
+  existing alpha.1 / alpha.2 callers keep compiling.
+
+### Changed
+- `Projects.WaitForLive` is now implemented on top of `Projects.Stream`.
+  Identical public behaviour; the private polling loop is no longer
+  duplicated. Regression tests verify the refactor.
+- `Version` constant bumped to `0.1.0-alpha.3`.
+
+### Tests
+- 6 new cases covering Stream's dedupe behaviour, terminal-failure
+  reporting, early handler-error exit, nil-handler tolerance (what
+  WaitForLive passes), MaxWait timeout, and a regression test for the
+  refactored WaitForLive. Total 53.
+
 ## [0.1.0-alpha.2] — 2026-04-24
 
 ### Added

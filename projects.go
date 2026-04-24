@@ -199,21 +199,56 @@ func (p *Projects) Refine(ctx context.Context, ref string, input RefineInput) (*
 	}
 }
 
-// WaitForLiveOptions configures the polling behaviour.
-type WaitForLiveOptions struct {
+// StreamOptions configures Projects.Stream and Projects.WaitForLive
+// polling behaviour.
+type StreamOptions struct {
 	// Interval between polls. Defaults to 2s.
 	Interval time.Duration
 	// MaxWait bounds the total polling duration. Defaults to 10 minutes.
 	MaxWait time.Duration
 }
 
-// WaitForLive blocks until the project reaches a terminal state (live,
-// failed, cancelled). Returns the final Project on "live", or a typed
-// Error with Code "BUILD_FAILED" / "BUILD_CANCELLED" otherwise. The
-// context's deadline is honoured.
+// WaitForLiveOptions is an alias for StreamOptions kept for backwards
+// compatibility with 0.1.0-alpha.1 / alpha.2 callers. Prefer
+// StreamOptions in new code.
+type WaitForLiveOptions = StreamOptions
+
+// StreamHandler is called for every de-duplicated status snapshot —
+// including the terminal event (live / failed / cancelled) — as Projects.Stream
+// polls. Return a non-nil error to stop polling early; that error is
+// returned verbatim from Stream so callers can distinguish it from the
+// transport / terminal errors the SDK generates.
+type StreamHandler func(ev StatusEvent) error
+
+// Stream polls the project's status endpoint, invoking handler on each
+// unique event, until the project reaches a terminal state (live /
+// failed / cancelled), the context deadline fires, opts.MaxWait
+// elapses, or the handler returns an error.
 //
-// Pass nil for opts to use defaults (2s poll, 10min ceiling).
-func (p *Projects) WaitForLive(ctx context.Context, ref string, opts *WaitForLiveOptions) (*Project, error) {
+// Return values:
+//   - nil            — project reached "live" cleanly
+//   - *floop.Error{Code: "BUILD_FAILED"} / "BUILD_CANCELLED" — terminal fail
+//   - *floop.Error{Code: "TIMEOUT"}      — MaxWait exceeded
+//   - the handler's error verbatim       — handler stopped early
+//   - any other error from the transport  — e.g. NETWORK_ERROR
+//
+// Events are de-duplicated on the (status, step, progress, queuePosition)
+// tuple so callers don't see dozens of identical "queued" snapshots
+// while a build waits — matches the Node and Python SDKs.
+//
+// Pass nil for opts to use defaults (2 s interval, 10 min ceiling).
+//
+// Example:
+//
+//	err := client.Projects.Stream(ctx, "my-project", nil, func(ev floop.StatusEvent) error {
+//	    fmt.Printf("%s (%d/%d): %s\n", ev.Status, ev.Step, ev.TotalSteps, ev.Message)
+//	    return nil
+//	})
+//	var fe *floop.Error
+//	if errors.As(err, &fe) && fe.Code == "BUILD_FAILED" {
+//	    // ...
+//	}
+func (p *Projects) Stream(ctx context.Context, ref string, opts *StreamOptions, handler StreamHandler) error {
 	interval := 2 * time.Second
 	maxWait := 10 * time.Minute
 	if opts != nil {
@@ -228,31 +263,39 @@ func (p *Projects) WaitForLive(ctx context.Context, ref string, opts *WaitForLiv
 	deadlineCtx, cancel := context.WithTimeout(ctx, maxWait)
 	defer cancel()
 
-	var last *StatusEvent
+	var lastKey string
 	for {
 		ev, err := p.Status(deadlineCtx, ref)
 		if err != nil {
 			if errors.Is(err, context.DeadlineExceeded) {
-				return nil, &Error{
+				return &Error{
 					Code:    "TIMEOUT",
-					Message: fmt.Sprintf("WaitForLive: project %s did not reach a terminal state within %s", ref, maxWait),
+					Message: fmt.Sprintf("Stream: project %s did not reach a terminal state within %s", ref, maxWait),
 				}
 			}
-			return nil, err
+			return err
 		}
-		last = ev
+
+		key := streamEventKey(ev)
+		if key != lastKey {
+			lastKey = key
+			if handler != nil {
+				if herr := handler(*ev); herr != nil {
+					return herr
+				}
+			}
+		}
 
 		switch ev.Status {
 		case "live":
-			// Fetch the fully-hydrated Project for the URL, etc.
-			return p.Get(ctx, ref, ListProjectsOptions{})
+			return nil
 		case "failed":
-			return nil, &Error{
+			return &Error{
 				Code:    "BUILD_FAILED",
 				Message: nonEmptyOr(ev.Message, "build failed"),
 			}
 		case "cancelled":
-			return nil, &Error{
+			return &Error{
 				Code:    "BUILD_CANCELLED",
 				Message: nonEmptyOr(ev.Message, "build cancelled"),
 			}
@@ -262,13 +305,43 @@ func (p *Projects) WaitForLive(ctx context.Context, ref string, opts *WaitForLiv
 		case <-time.After(interval):
 			// loop
 		case <-deadlineCtx.Done():
-			msg := "WaitForLive: polling deadline exceeded"
-			if last != nil {
-				msg = fmt.Sprintf("%s (last status: %s)", msg, last.Status)
+			return &Error{
+				Code:    "TIMEOUT",
+				Message: fmt.Sprintf("Stream: polling deadline exceeded (last status: %s)", ev.Status),
 			}
-			return nil, &Error{Code: "TIMEOUT", Message: msg}
 		}
 	}
+}
+
+// WaitForLive blocks until the project reaches a terminal state (live,
+// failed, cancelled). Returns the final Project on "live", or a typed
+// Error with Code "BUILD_FAILED" / "BUILD_CANCELLED" otherwise. The
+// context's deadline is honoured.
+//
+// Pass nil for opts to use defaults (2s poll, 10min ceiling).
+//
+// Implemented on top of Projects.Stream. Callers who want to observe
+// intermediate events should use Stream directly.
+func (p *Projects) WaitForLive(ctx context.Context, ref string, opts *WaitForLiveOptions) (*Project, error) {
+	if err := p.Stream(ctx, ref, opts, nil); err != nil {
+		return nil, err
+	}
+	return p.Get(ctx, ref, ListProjectsOptions{})
+}
+
+// streamEventKey produces the de-duplication key for two consecutive
+// status snapshots. Must match the keys used by the Node and Python
+// SDKs so all three see the same event stream.
+func streamEventKey(ev *StatusEvent) string {
+	progress := ""
+	if ev.Progress != nil {
+		progress = fmt.Sprintf("%g", *ev.Progress)
+	}
+	queuePos := ""
+	if ev.QueuePosition != nil {
+		queuePos = fmt.Sprintf("%d", *ev.QueuePosition)
+	}
+	return fmt.Sprintf("%s|%d|%s|%s", ev.Status, ev.Step, progress, queuePos)
 }
 
 func nonEmptyOr(s, fallback string) string {
