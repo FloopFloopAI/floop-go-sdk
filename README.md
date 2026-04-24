@@ -102,9 +102,30 @@ Known `.Code` values mirror the CLI and Node/Python SDKs: `UNAUTHORIZED`, `FORBI
 | `client.Library`    | `List`, `Clone` |
 | `client.Usage`      | `Summary` |
 | `client.ApiKeys`    | `List`, `Create`, `Remove` |
+| `client.Uploads`    | `Create` (returns an `UploadedAttachment` you pass into `Projects.Refine`) |
 | `client.User`       | `Me` |
 
-Uploads (S3 presign + direct PUT) is the only resource still missing versus the Node/Python SDKs — use the [floop CLI](https://github.com/FloopFloopAI/floop-cli) for that today.
+Surface parity with the Node and Python SDKs is complete. The only gap left is the streaming iterator equivalent of `projects.stream()` — use the `Projects.Status` polling loop shown above, or `Projects.WaitForLive` for the blocking variant, until that lands.
+
+## Uploading an attachment
+
+```go
+data, _ := os.ReadFile("./screenshot.png")
+att, err := client.Uploads.Create(ctx, floop.CreateUploadInput{
+    FileName: "screenshot.png",
+    Bytes:    data,
+})
+if err != nil { log.Fatal(err) }
+
+_, err = client.Projects.Refine(ctx, "my-project", floop.RefineInput{
+    Message:     "Re-do the landing page based on this screenshot.",
+    Attachments: []floop.RefineAttachment{{
+        Key: att.Key, FileName: att.FileName, FileType: att.FileType, FileSize: att.FileSize,
+    }},
+})
+```
+
+Streams are supported too — pass `File: io.Reader` + `Size: int64` instead of `Bytes` for large files (max 5 MB). Allowed types: png, jpg, gif, svg, webp, ico, pdf, txt, csv, doc, docx.
 
 ## Configuration
 

@@ -30,9 +30,10 @@ import (
 	"time"
 )
 
-// Version is the SDK's semver tag (kept in sync with the latest
-// `sdk-v*` git tag on the repo).
-const Version = "0.1.0-alpha.1"
+// Version is the SDK's semver tag (kept in sync with the latest `v*`
+// git tag on the repo — Go modules require a plain `v` prefix, not
+// `sdk-v*` like the Node SDK).
+const Version = "0.1.0-alpha.2"
 
 const (
 	defaultBaseURL = "https://www.floopfloop.com"
@@ -54,6 +55,7 @@ type Client struct {
 	Library    *Library
 	Usage      *Usage
 	ApiKeys    *ApiKeys
+	Uploads    *Uploads
 	User       *UserAPI
 }
 
@@ -122,6 +124,7 @@ func NewClient(apiKey string, opts ...ClientOption) (*Client, error) {
 	c.Library = &Library{client: c}
 	c.Usage = &Usage{client: c}
 	c.ApiKeys = &ApiKeys{client: c}
+	c.Uploads = &Uploads{client: c}
 	c.User = &UserAPI{client: c}
 
 	return c, nil

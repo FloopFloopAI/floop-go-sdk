@@ -4,6 +4,29 @@ All notable changes to `github.com/FloopFloopAI/floop-go-sdk` are documented
 in this file. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This SDK follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.2] — 2026-04-24
+
+### Added
+- `client.Uploads.Create(ctx, CreateUploadInput)` — presigns an S3 slot,
+  PUTs the file directly, returns an `UploadedAttachment` you can drop
+  into `Projects.Refine`'s `Attachments` slice.
+- `CreateUploadInput` accepts either `Bytes: []byte` or `File: io.Reader`
+  + `Size: int64` (streaming). 5 MB cap, same extension allowlist as the
+  Node/Python SDKs (png, jpg, gif, svg, webp, ico, pdf, txt, csv, doc,
+  docx). Unknown MIME types and over-size files return
+  `*floop.Error{Code: "VALIDATION_ERROR"}` before the presign call.
+- `GuessMimeType(fileName)` exported helper.
+- 9 new unit tests (two-server `httptest` harness stubs both the
+  FloopFloop presign API and S3). Total test count now 47.
+
+### Changed
+- `Version` constant bumped to `0.1.0-alpha.2`.
+
+### Deferred to a future release
+- Streaming / async iterator equivalent of the Node SDK's
+  `projects.stream()`. Use `Projects.Status` in a loop or
+  `Projects.WaitForLive` until it lands.
+
 ## [0.1.0-alpha.1] — 2026-04-24
 
 ### Added
@@ -34,6 +57,6 @@ This SDK follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   every resource, and the polling loop.
 
 ### Deferred to a future release
-- Uploads (S3 presign + direct PUT — needs careful binary-body handling).
+- Uploads (S3 presign + direct PUT — needs careful binary-body handling). *(Landed in 0.1.0-alpha.2.)*
 - Streaming / async iterator equivalent of the Node SDK's
   `projects.stream()`.
