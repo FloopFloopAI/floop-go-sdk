@@ -1,0 +1,11 @@
+# Go build output
+*.exe
+*.test
+*.out
+coverage.*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
