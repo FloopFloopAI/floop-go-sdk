@@ -99,6 +99,73 @@ func TestProjects_Status(t *testing.T) {
 	}
 }
 
+func TestProjects_Cancel(t *testing.T) {
+	var seenMethod, seenPath string
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		seenMethod = r.Method
+		seenPath = r.URL.Path
+		w.Write([]byte(`{"data":{}}`))
+	})
+	if err := c.Projects.Cancel(context.Background(), "p_1"); err != nil {
+		t.Fatalf("Cancel: %v", err)
+	}
+	if seenMethod != "POST" || seenPath != "/api/v1/projects/p_1/cancel" {
+		t.Errorf("request: %s %s", seenMethod, seenPath)
+	}
+}
+
+func TestProjects_Reactivate(t *testing.T) {
+	var seenMethod, seenPath string
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		seenMethod = r.Method
+		seenPath = r.URL.Path
+		w.Write([]byte(`{"data":{}}`))
+	})
+	if err := c.Projects.Reactivate(context.Background(), "p_1"); err != nil {
+		t.Fatalf("Reactivate: %v", err)
+	}
+	if seenMethod != "POST" || seenPath != "/api/v1/projects/p_1/reactivate" {
+		t.Errorf("request: %s %s", seenMethod, seenPath)
+	}
+}
+
+func TestProjects_Conversations(t *testing.T) {
+	var seenPath string
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		seenPath = r.URL.String()
+		w.Write([]byte(`{"data":{"messages":[{"id":"m_1","projectId":"p_1","role":"user","content":"hi","metadata":null,"status":"sent","position":1,"createdAt":""},{"id":"m_2","projectId":"p_1","role":"assistant","content":"hello","metadata":null,"status":"sent","position":2,"createdAt":""}],"queued":[],"latestVersion":3}}`))
+	})
+	out, err := c.Projects.Conversations(context.Background(), "p_1", ConversationsOptions{Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seenPath != "/api/v1/projects/p_1/conversations?limit=10" {
+		t.Errorf("path: %s", seenPath)
+	}
+	if len(out.Messages) != 2 || out.LatestVersion != 3 {
+		t.Errorf("decode: %+v", out)
+	}
+	if out.Messages[1].Role != "assistant" || out.Messages[1].Content != "hello" {
+		t.Errorf("message[1]: %+v", out.Messages[1])
+	}
+}
+
+func TestProjects_ConversationsWithoutLimit(t *testing.T) {
+	var seenPath string
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		seenPath = r.URL.String()
+		w.Write([]byte(`{"data":{"messages":[],"queued":[],"latestVersion":0}}`))
+	})
+	_, err := c.Projects.Conversations(context.Background(), "p_1", ConversationsOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// No ?limit= query param when opts.Limit is zero (server default).
+	if seenPath != "/api/v1/projects/p_1/conversations" {
+		t.Errorf("path: %s", seenPath)
+	}
+}
+
 func TestProjects_RefineQueued(t *testing.T) {
 	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"data":{"queued":true,"messageId":"m_1"}}`))

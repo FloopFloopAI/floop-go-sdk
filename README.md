@@ -115,7 +115,7 @@ Known `.Code` values mirror the CLI and Node/Python SDKs: `UNAUTHORIZED`, `FORBI
 
 | Namespace           | Methods |
 |---|---|
-| `client.Projects`   | `Create`, `List`, `Get`, `Status`, `Refine`, `Stream`, `WaitForLive` |
+| `client.Projects`   | `Create`, `List`, `Get`, `Status`, `Cancel`, `Reactivate`, `Refine`, `Conversations`, `Stream`, `WaitForLive` |
 | `client.Subdomains` | `Check`, `Suggest` |
 | `client.Secrets`    | `List`, `Set`, `Remove` |
 | `client.Library`    | `List`, `Clone` |
@@ -124,7 +124,7 @@ Known `.Code` values mirror the CLI and Node/Python SDKs: `UNAUTHORIZED`, `FORBI
 | `client.Uploads`    | `Create` (returns an `UploadedAttachment` you pass into `Projects.Refine`) |
 | `client.User`       | `Me` |
 
-Surface parity with the Node and Python SDKs is **complete** as of 0.1.0-alpha.3 — `Projects.Stream` closes the last gap.
+Method-for-method parity with the Node and Python SDKs is **complete** as of 0.1.0-alpha.4.
 
 ## Uploading an attachment
 

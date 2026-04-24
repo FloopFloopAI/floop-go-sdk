@@ -4,6 +4,26 @@ All notable changes to `github.com/FloopFloopAI/floop-go-sdk` are documented
 in this file. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This SDK follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.4] — 2026-04-24
+
+### Added
+- `client.Projects.Cancel(ctx, ref)` — POST `/api/v1/projects/:ref/cancel`.
+- `client.Projects.Reactivate(ctx, ref)` — POST `/api/v1/projects/:ref/reactivate`.
+- `client.Projects.Conversations(ctx, ref, opts)` — GET
+  `/api/v1/projects/:ref/conversations[?limit=N]` returning
+  `*ConversationsResult` (Messages + Queued + LatestVersion).
+
+These close three minor method-level gaps vs the Node / Python SDKs
+identified in a monorepo docs audit. Method-for-method parity across
+Node / Python / Go is now **complete**.
+
+### Tests
+- 4 new cases (Cancel, Reactivate, Conversations with+without limit).
+  Total 57.
+
+### Changed
+- `Version` constant bumped to `0.1.0-alpha.4`.
+
 ## [0.1.0-alpha.3] — 2026-04-24
 
 ### Added

@@ -68,6 +68,32 @@ var TerminalProjectStatuses = map[string]bool{
 	"cancelled": true,
 }
 
+// ConversationMessage is one row of a project's refinement conversation
+// history. Returned by Projects.Conversations.
+type ConversationMessage struct {
+	ID        string  `json:"id"`
+	ProjectID string  `json:"projectId"`
+	Role      string  `json:"role"`
+	Content   string  `json:"content"`
+	Metadata  any     `json:"metadata"`
+	Status    string  `json:"status"`
+	Position  *int    `json:"position"`
+	CreatedAt string  `json:"createdAt"`
+}
+
+// ConversationsResult is the /api/v1/projects/:ref/conversations shape.
+type ConversationsResult struct {
+	Messages      []ConversationMessage `json:"messages"`
+	Queued        []ConversationMessage `json:"queued"`
+	LatestVersion int                   `json:"latestVersion"`
+}
+
+// ConversationsOptions configures Projects.Conversations.
+type ConversationsOptions struct {
+	// Limit caps the number of messages returned. 0 = server default.
+	Limit int
+}
+
 // RefineInput is the payload for Projects.Refine.
 type RefineInput struct {
 	Message       string              `json:"message"`
@@ -159,6 +185,35 @@ func (p *Projects) Get(ctx context.Context, ref string, opts ListProjectsOptions
 func (p *Projects) Status(ctx context.Context, ref string) (*StatusEvent, error) {
 	var out StatusEvent
 	if err := p.client.request(ctx, "GET", "/api/v1/projects/"+url.PathEscape(ref)+"/status", nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// Cancel aborts an in-flight build / refinement. No-op on projects that
+// aren't currently building. Idempotent on the server side.
+func (p *Projects) Cancel(ctx context.Context, ref string) error {
+	return p.client.request(ctx, "POST", "/api/v1/projects/"+url.PathEscape(ref)+"/cancel", nil, nil)
+}
+
+// Reactivate brings a previously-cancelled or archived project back to
+// "active". Used by the web UI when a user restores a project they
+// cancelled earlier. Server rejects with CONFLICT if the project is
+// already active.
+func (p *Projects) Reactivate(ctx context.Context, ref string) error {
+	return p.client.request(ctx, "POST", "/api/v1/projects/"+url.PathEscape(ref)+"/reactivate", nil, nil)
+}
+
+// Conversations returns the project's refinement history — ordered
+// oldest-first, optionally capped at opts.Limit rows. `Queued` contains
+// messages the user has submitted but the pipeline hasn't processed yet.
+func (p *Projects) Conversations(ctx context.Context, ref string, opts ConversationsOptions) (*ConversationsResult, error) {
+	path := "/api/v1/projects/" + url.PathEscape(ref) + "/conversations"
+	if opts.Limit > 0 {
+		path += "?limit=" + url.QueryEscape(fmt.Sprintf("%d", opts.Limit))
+	}
+	var out ConversationsResult
+	if err := p.client.request(ctx, "GET", path, nil, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
