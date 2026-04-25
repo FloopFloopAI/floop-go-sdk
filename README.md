@@ -126,6 +126,8 @@ Known `.Code` values mirror the CLI and Node/Python SDKs: `UNAUTHORIZED`, `FORBI
 
 Method-for-method parity with the Node and Python SDKs is **complete** as of 0.1.0-alpha.4.
 
+For longer end-to-end patterns — streaming a build, refining mid-deploy, attachment uploads, key rotation, retry-with-backoff — see the [cookbook](docs/recipes.md).
+
 ## Uploading an attachment
 
 ```go
