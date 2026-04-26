@@ -342,7 +342,11 @@ func (p *Projects) Stream(ctx context.Context, ref string, opts *StreamOptions, 
 		}
 
 		switch ev.Status {
-		case "live":
+		// `live` and `archived` are both terminal-success states. The
+		// Node, Python, Swift, and Kotlin SDKs already group them; Go
+		// previously only matched `live`, so an archived project mid-
+		// stream caused max_wait timeouts instead of clean returns.
+		case "live", "archived":
 			return nil
 		case "failed":
 			return &Error{

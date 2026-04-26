@@ -33,7 +33,7 @@ import (
 // Version is the SDK's semver tag (kept in sync with the latest `v*`
 // git tag on the repo — Go modules require a plain `v` prefix, not
 // `sdk-v*` like the Node SDK).
-const Version = "0.1.0-alpha.4"
+const Version = "0.1.0-alpha.5"
 
 const (
 	defaultBaseURL = "https://www.floopfloop.com"

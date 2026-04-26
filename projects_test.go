@@ -254,3 +254,31 @@ func TestProjects_WaitForLive_FailedReturnsTypedError(t *testing.T) {
 		t.Errorf("message: %q", fe.Message)
 	}
 }
+
+// Pre-fix the case-statement only matched live/failed/cancelled, so
+// streaming an `archived` project looped until MaxWait. Node / Python
+// / Swift / Kotlin all treat archived as a non-error terminal; Go
+// now matches.
+func TestProjects_Stream_ArchivedTerminatesCleanlyLikeLive(t *testing.T) {
+	statusCalls := 0
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/projects/p_1/status" {
+			statusCalls++
+			w.Write([]byte(`{"data":{"step":3,"totalSteps":3,"status":"archived","message":""}}`))
+			return
+		}
+		// Serves Get() after stream returns; archived projects come back
+		// from list() with status:archived.
+		w.Write([]byte(`{"data":[{"id":"p_1","name":"","subdomain":"cat","status":"archived","botType":null,"url":null,"amplifyAppUrl":null,"isPublic":true,"isAuthProtected":false,"teamId":null,"createdAt":"","updatedAt":""}]}`))
+	})
+	proj, err := c.Projects.WaitForLive(context.Background(), "p_1", &WaitForLiveOptions{Interval: 5 * time.Millisecond, MaxWait: 5 * time.Second})
+	if err != nil {
+		t.Fatalf("archived should be a clean terminal, not a max_wait timeout — got %v", err)
+	}
+	if proj == nil || proj.Status != "archived" {
+		t.Errorf("expected archived project, got %+v", proj)
+	}
+	if statusCalls != 1 {
+		t.Errorf("status polled %d times, want 1 (archived terminates immediately)", statusCalls)
+	}
+}

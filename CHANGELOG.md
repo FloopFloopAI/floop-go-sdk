@@ -4,6 +4,26 @@ All notable changes to `github.com/FloopFloopAI/floop-go-sdk` are documented
 in this file. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This SDK follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.5] — 2026-04-26
+
+### Fixed
+- **`Projects.Stream` and `Projects.WaitForLive` looped until `MaxWait`
+  when a project entered the `archived` state mid-stream.** The `switch
+  ev.Status` only matched `live` / `failed` / `cancelled`; `archived`
+  fell through and polling continued. Now `case "live", "archived":`
+  returns `nil` — matches Node, Python, Swift, and Kotlin which already
+  handle archived as a non-error terminal. Cross-SDK parity audit
+  surfaced the same drift in floop-rust-sdk, floop-ruby-sdk, and
+  floop-php-sdk; Ruby fixed yesterday, Rust + PHP fixed in their
+  alpha.3 bumps the same day.
+- New regression test
+  `TestProjects_Stream_ArchivedTerminatesCleanlyLikeLive` proves the
+  fix — pre-fix `WaitForLive` would have spun until the test rig's 5s
+  `MaxWait` cap, failing with a `TIMEOUT` error.
+
+### Changed
+- `Version` constant bumped to `0.1.0-alpha.5`.
+
 ## [0.1.0-alpha.4] — 2026-04-24
 
 ### Added
