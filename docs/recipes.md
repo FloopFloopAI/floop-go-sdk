@@ -387,6 +387,30 @@ func WithRetry[T any](ctx context.Context, maxAttempts int, fn func(context.Cont
 
 ---
 
+## 7. Make a small change without a full rebuild (`CodeEditOnly`)
+
+Default `Refine` runs the full 6-step pipeline — replan, regenerate, redeploy. For a copy edit, a colour swap, or a typo fix that doesn't need a redesign, set `CodeEditOnly: true`. The backend cuts to a 3-step in-place patch and deducts the cheaper code-edit credit cost (roughly half a refinement).
+
+Only meaningful once the project has reached `live` at least once — on a project that hasn't deployed yet, the flag is ignored and you get a normal initial build.
+
+```go
+_, err := client.Projects.Refine(ctx, "recipe-blog", floop.RefineInput{
+	Message:      "Change the hero headline from 'Welcome' to 'Hello there.'",
+	CodeEditOnly: true,
+})
+if err != nil {
+	log.Fatal(err)
+}
+
+if _, err := client.Projects.WaitForLive(ctx, "recipe-blog", nil); err != nil {
+	log.Fatal(err)
+}
+```
+
+If the change actually needs a redesign or a new dependency, prefer a plain `Refine` — `CodeEditOnly` is for surface-level edits only. The backend won't promote a code-edit into a full refinement automatically; it just runs the 3-step patch with the limited tools it has, and you may end up paying for a second `Refine` to redo the change properly.
+
+---
+
 ## Got a pattern worth adding?
 
 Open an issue at [FloopFloopAI/floop-go-sdk/issues](https://github.com/FloopFloopAI/floop-go-sdk/issues) describing the use case. Recipes live in this file, not in the package, so they're easy to update without an SDK release.
