@@ -33,7 +33,7 @@ import (
 // Version is the SDK's semver tag (kept in sync with the latest `v*`
 // git tag on the repo — Go modules require a plain `v` prefix, not
 // `sdk-v*` like the Node SDK).
-const Version = "0.1.0-alpha.5"
+const Version = "0.1.0-alpha.6"
 
 const (
 	defaultBaseURL = "https://www.floopfloop.com"
@@ -49,14 +49,15 @@ type Client struct {
 	userAgent  string
 
 	// Resources — attached in NewClient so users can do client.Projects.Create(...).
-	Projects   *Projects
-	Subdomains *Subdomains
-	Secrets    *Secrets
-	Library    *Library
-	Usage      *Usage
-	ApiKeys    *ApiKeys
-	Uploads    *Uploads
-	User       *UserAPI
+	Projects      *Projects
+	Subdomains    *Subdomains
+	Secrets       *Secrets
+	Library       *Library
+	Usage         *Usage
+	Subscriptions *Subscriptions
+	ApiKeys       *ApiKeys
+	Uploads       *Uploads
+	User          *UserAPI
 }
 
 // ClientOption configures the Client at construction time.
@@ -123,6 +124,7 @@ func NewClient(apiKey string, opts ...ClientOption) (*Client, error) {
 	c.Secrets = &Secrets{client: c}
 	c.Library = &Library{client: c}
 	c.Usage = &Usage{client: c}
+	c.Subscriptions = &Subscriptions{client: c}
 	c.ApiKeys = &ApiKeys{client: c}
 	c.Uploads = &Uploads{client: c}
 	c.User = &UserAPI{client: c}
