@@ -4,6 +4,34 @@ All notable changes to `github.com/FloopFloopAI/floop-go-sdk` are documented
 in this file. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This SDK follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0-alpha.6] — 2026-04-28
+
+### Added
+- **`client.Subscriptions.Current(ctx)`** — new resource accessor that wraps
+  `GET /api/v1/subscriptions/current` and returns the authenticated user's
+  plan + credit-balance snapshot. Distinct from `Usage.Summary` —
+  `Usage.Summary` covers current-period consumption (credits remaining,
+  builds used, storage), while `Subscriptions.Current` returns the plan
+  tier itself (price, billing period, cancel state). They overlap on
+  `MonthlyCredits` and `MaxProjects` but serve different audiences ("am I
+  about to hit my limits?" vs "what plan am I on, and when does it
+  renew?").
+- New types `CurrentSubscription`, `SubscriptionPlan`, `SubscriptionCredits`.
+  Both `Subscription` and `Credits` on `CurrentSubscription` are pointer
+  fields and can be `nil` independently — a user may exist without a
+  subscription (mid-signup, cancelled with no grace credits).
+
+### Changed
+- `Version` constant bumped to `0.1.0-alpha.6`.
+
+### Tests
+- Two new cases in `subscriptions_test.go` covering the populated-response
+  shape and the both-null edge case.
+
+### Notes
+- Mirrors [`@floopfloop/sdk` PR #6](https://github.com/FloopFloopAI/floop-node-sdk/pull/6)
+  (Node `0.1.0-alpha.3`) — cross-SDK parity drop.
+
 ## [0.1.0-alpha.5] — 2026-04-26
 
 ### Fixed
