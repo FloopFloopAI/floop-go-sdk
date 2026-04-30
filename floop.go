@@ -145,6 +145,12 @@ type Error struct {
 	// or one of "NETWORK_ERROR" / "TIMEOUT" / "UNKNOWN" for transport
 	// issues. Unknown server codes pass through verbatim so callers can
 	// switch on new codes without us cutting a release first.
+	//
+	// Documented set: VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND,
+	// CONFLICT, RATE_LIMITED, SERVER_ERROR, SERVICE_UNAVAILABLE,
+	// NETWORK_ERROR, TIMEOUT, BUILD_FAILED, BUILD_CANCELLED,
+	// INSUFFICIENT_CREDITS, PAYMENT_FAILED, UNKNOWN. Anything else passes
+	// through as a raw server string.
 	Code string
 
 	// Status is the HTTP status code. 0 for transport-level failures.
